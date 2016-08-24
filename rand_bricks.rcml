@@ -1,0 +1,266 @@
+function mod(a, b) {
+    loop {
+        if (a < b) {
+            break;
+        } else {
+            a = a - b;
+        }
+    }
+
+    return a;
+}
+
+function min(a, b) {
+    if (a < b) {
+        return a;
+    } else {
+        return b;
+    }
+}
+
+function is_acute(x0, y0, x_c, y_c, x1, y1) {
+    return ((x0 - x_c) * (x1 - x_c) + (y0 - y_c) * (y1 - y_c)) > 0;
+}
+
+function dist_to_point(x0, y0, x1, y1) {
+    return math.sqrt(math.pow(x0 - x1, 2) + math.pow(y0 - y1, 2));
+}
+
+function dist_to_line(x, y, x0, y0, x1, y1) {
+    a = y0 - y1;
+    b = x1 - x0;
+    c = x0 * y1 - x1 * y0;
+
+    return math.abs(a * x + b * y + c) / math.sqrt(a * a + b * b);
+}
+
+function dist_to_segment(x, y, x0, y0, x1, y1) {
+
+    if (is_acute(x, y, x0, y0, x1, y1) && is_acute(x, y, x1, y1, x0, y0)) {
+        return dist_to_line(x, y, x0, y0, x1, y1);
+    } else {
+        return min(dist_to_point(x, y, x0, y0), dist_to_point(x, y, x1, y1));
+    }
+}
+
+function rotate(dx, dy, angle, coord_idx) {
+    if (coord_idx == 0) {
+        return dx * math.cos(angle) - dy * math.sin(angle);
+    } else {
+        return dx * math.sin(angle) + dy * math.cos(angle);
+    }
+}
+
+function get_corner(dx, dy, angle, coord, i, coord_idx) {
+    sign1 = 1;
+    sign2 = 1;
+
+    if (i < 2.0) {
+        sign1 = -1;
+    }
+    if ((i == 0) || (i == 3)) {
+        sign2 = -1;
+    }
+
+    return rotate(sign1 * dx, sign2 * dy, angle, coord_idx) + coord;
+}
+
+function dist_to_brick(x, y, x_c, y_c, angle, dx, dy) {
+    i = 0;
+
+    x0 = get_corner(dx, dy, angle, x_c, i, 0);
+    y0 = get_corner(dx, dy, angle, y_c, i, 1);
+
+    res = 99999;
+
+    loop {
+        i = mod(i + 1, 4);
+
+        x1 = get_corner(dx, dy, angle, x_c, i, 0);
+        y1 = get_corner(dx, dy, angle, y_c, i, 1);
+
+        res = min(res, dist_to_segment(x, y, x0, y0, x1, y1));
+
+        x0 = x1;
+        y0 = y1;
+
+        if (i == 0) {
+            break;
+        }
+    }
+
+    return res;
+}
+
+function brick_to_brick_dist(x0, y0, a0, x1, y1, a1, dx, dy) {
+    i = 0;
+    dx = dx / 2;
+    dy = dy / 2;
+
+    res = 999999;
+
+    loop {
+        x_brick = get_corner(dx, dy, a0, x0, i, 0);
+        y_brick = get_corner(dx, dy, a0, y0, i, 1);
+
+        res = min(res, dist_to_brick(x_brick, y_brick, x1, y1, a1, dx, dy));
+        i = i + 1;
+
+        if (i == 4) {
+            break;
+        }
+    }
+
+    return res;
+}
+
+function brick_intersection(x0, y0, a0, x1, y1, a1, dx, dy) {
+    i = 0;
+
+    dx = dx / 2;
+    dy = dy / 2;
+
+    res = 1.0;
+
+    loop {
+        x_brick = get_corner(dx, dy, a0, x0, i, 0) - x1;
+        y_brick = get_corner(dx, dy, a0, y0, i, 1) - y1;
+
+        x = rotate(x_brick, y_brick, -a1, 0);
+        y = rotate(x_brick, y_brick, -a1, 0);
+
+        res = res * (1 - (((x < -dx) || (x > dx)) && ((y < -dy) || (y > dy))));
+        i = i + 1;
+
+        if (i == 4) {
+            break;
+        }
+    }
+
+    return res;
+}
+
+function brick_dist(x0, y0, a0, x1, y1, a1, dx, dy) {
+    if (brick_intersection(x0, y0, a0, x1, y1, a1, dx, dy) ||
+        brick_intersection(x1, y1, a1, x0, y0, a0, dx, dy)) {
+        return 0;
+    } else {
+        return min(brick_to_brick_dist(x0, y0, a0, x1, y1, a1, dx, dy),
+               brick_to_brick_dist(x1, y1, a1, x0, y0, a0, dx, dy));
+    }
+}
+
+
+function array_set(x, y, angle, i) {
+    array.set("bricks_x", i, x);
+    array.set("bricks_y", i, y);
+    array.set("bricks_angle", i, angle);
+}
+
+function array_init(brick_amount) {
+    array.create("bricks_x", brick_amount);
+    array.create("bricks_y", brick_amount);
+    array.create("bricks_angle", brick_amount);
+
+    i = 0;
+
+    loop {
+        array_set(317, 337, 0, i);
+
+        i = i + 1;
+
+        if (i == brick_amount) {
+            break;
+        }
+    }
+}
+
+function array_print(brick_amount) {
+    i = 0;
+    rad_scale = 3.1415/180;
+
+    loop {
+        system.echo(array.get("bricks_x", i), " ", array.get("bricks_y", i),
+                    " ", array.get("bricks_angle", i) / rad_scale, "\n");
+
+        i = i + 1;
+
+        if (i == brick_amount) {
+            break;
+        }
+    }
+
+    system.echo("layer\n");
+}
+
+function move_brick(j, x_min, x_max, y_min, y_max, dx, dy, brick_amount) {
+    rad_scale = 3.1415/180;
+    eps = 15;
+
+    loop {
+        res = 1.0;
+
+        x = math.rand(x_max - x_min, x_min);
+        y = math.rand(y_max - y_min, y_min);
+        angle = math.rand(180, -90) * rad_scale;
+
+        i = 0;
+        loop {
+            if (i != j) {
+                x_ = array.get("bricks_x", i);
+                y_ = array.get("bricks_y", i);
+                angle_ = array.get("bricks_angle", i);
+
+                dist = brick_dist(x, y, angle, x_, y_, angle_, dx, dy);
+                res = res * (dist > eps);
+            }
+
+            i = i + 1;
+
+            if (i == brick_amount) {
+                break;
+            }
+         }
+
+        if (res) {
+            break;
+        }
+    }
+
+    array_set(x, y, angle, j);
+}
+
+function rand_bricks(x_min, x_max, y_min, y_max, dx, dy, iter_amount, brick_amount) {
+    i = 0;
+
+    array_init(brick_amount);
+
+    loop {
+        j = 0;
+
+        loop {
+            move_brick(j, x_min, x_max, y_min, y_max, dx, dy, brick_amount);
+
+            j = j + 1;
+
+            if (j == brick_amount) {
+                break;
+            }
+        }
+        array_print(brick_amount);
+        //function call
+
+        i = i + 1;
+
+        if (i == iter_amount) {
+            break;
+        }
+    }
+}
+
+function main() {
+    dy = 80;
+    dx = 30;
+
+    rand_bricks(100, 600, 100, 600, dx, dy, 2, 5);
+}
