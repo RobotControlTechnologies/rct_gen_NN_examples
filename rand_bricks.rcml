@@ -1,3 +1,9 @@
+define TRUE 1
+define FALSE 0
+
+define X_COORD 0
+define Y_COORD 1
+
 function mod(a, b) {
     loop {
         if (a < b) {
@@ -55,7 +61,7 @@ function get_corner(dx, dy, angle, coord, i, coord_idx) {
     sign1 = 1;
     sign2 = 1;
 
-    if (i < 2.0) {
+    if (i < 2) {
         sign1 = -1;
     }
     if ((i == 0) || (i == 3)) {
@@ -68,16 +74,16 @@ function get_corner(dx, dy, angle, coord, i, coord_idx) {
 function dist_to_brick(x, y, x_c, y_c, angle, dx, dy) {
     i = 0;
 
-    x0 = get_corner(dx, dy, angle, x_c, i, 0);
-    y0 = get_corner(dx, dy, angle, y_c, i, 1);
+    x0 = get_corner(dx, dy, angle, x_c, i, X_COORD);
+    y0 = get_corner(dx, dy, angle, y_c, i, Y_COORD);
 
     res = 99999;
 
     loop {
         i = mod(i + 1, 4);
 
-        x1 = get_corner(dx, dy, angle, x_c, i, 0);
-        y1 = get_corner(dx, dy, angle, y_c, i, 1);
+        x1 = get_corner(dx, dy, angle, x_c, i, X_COORD);
+        y1 = get_corner(dx, dy, angle, y_c, i, Y_COORD);
 
         res = min(res, dist_to_segment(x, y, x0, y0, x1, y1));
 
@@ -100,8 +106,8 @@ function brick_to_brick_dist(x0, y0, a0, x1, y1, a1, dx, dy) {
     res = 999999;
 
     loop {
-        x_brick = get_corner(dx, dy, a0, x0, i, 0);
-        y_brick = get_corner(dx, dy, a0, y0, i, 1);
+        x_brick = get_corner(dx, dy, a0, x0, i, X_COORD);
+        y_brick = get_corner(dx, dy, a0, y0, i, Y_COORD);
 
         res = min(res, dist_to_brick(x_brick, y_brick, x1, y1, a1, dx, dy));
         i = i + 1;
@@ -120,24 +126,22 @@ function brick_intersection(x0, y0, a0, x1, y1, a1, dx, dy) {
     dx = dx / 2;
     dy = dy / 2;
 
-    res = 1.0;
-
     loop {
-        x_brick = get_corner(dx, dy, a0, x0, i, 0) - x1;
-        y_brick = get_corner(dx, dy, a0, y0, i, 1) - y1;
+        x_brick = get_corner(dx, dy, a0, x0, i, X_COORD) - x1;
+        y_brick = get_corner(dx, dy, a0, y0, i, Y_COORD) - y1;
 
-        x = rotate(x_brick, y_brick, -a1, 0);
-        y = rotate(x_brick, y_brick, -a1, 0);
+        x = rotate(x_brick, y_brick, -a1, X_COORD);
+        y = rotate(x_brick, y_brick, -a1, Y_COORD);
 
-        res = res * (1 - (((x < -dx) || (x > dx)) && ((y < -dy) || (y > dy))));
         i = i + 1;
 
+        if ((x >= -dx) && (x <= dx) && (y >= -dy) && (y <= dy)) {
+            return TRUE;
+        }
         if (i == 4) {
-            break;
+            return FALSE;
         }
     }
-
-    return res;
 }
 
 function brick_dist(x0, y0, a0, x1, y1, a1, dx, dy) {
@@ -198,8 +202,6 @@ function move_brick(j, x_min, x_max, y_min, y_max, dx, dy, brick_amount) {
     eps = 15;
 
     loop {
-        res = 1.0;
-
         x = math.rand(x_max - x_min, x_min);
         y = math.rand(y_max - y_min, y_min);
         angle = math.rand(180, -90) * rad_scale;
@@ -212,22 +214,19 @@ function move_brick(j, x_min, x_max, y_min, y_max, dx, dy, brick_amount) {
                 angle_ = array.get("bricks_angle", i);
 
                 dist = brick_dist(x, y, angle, x_, y_, angle_, dx, dy);
-                res = res * (dist > eps);
+                if (dist <= eps) {
+                    break;
+                }
             }
 
             i = i + 1;
 
             if (i == brick_amount) {
-                break;
+                array_set(x, y, angle, j);
+                return;
             }
-         }
-
-        if (res) {
-            break;
         }
     }
-
-    array_set(x, y, angle, j);
 }
 
 function rand_bricks(x_min, x_max, y_min, y_max, dx, dy, iter_amount, brick_amount) {
@@ -261,6 +260,15 @@ function rand_bricks(x_min, x_max, y_min, y_max, dx, dy, iter_amount, brick_amou
 function main() {
     dy = 80;
     dx = 30;
+    x_min = 100;
+    y_min = 100;
 
-    rand_bricks(100, 600, 100, 600, dx, dy, 2, 5);
+    x_max = 600;
+    y_max = 600;
+
+    iter_amount = 2;
+
+    brick_amount = 5;
+
+    rand_bricks(x_min, x_max, y_min, y_max, dx, dy, iter_amount, brick_amount);
 }
