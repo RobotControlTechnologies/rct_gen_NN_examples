@@ -135,11 +135,11 @@ function brick_intersection(x0, y0, a0, x1, y1, a1, dx, dy) {
 
         i = i + 1;
 
-        if ((x >= -dx) || (x <= dx) || (y >= -dy) || (y <= dy)) {
-            return FALSE;
+        if ((x >= -dx) && (x <= dx) && (y >= -dy) && (y <= dy)) {
+            return TRUE;
         }
         if (i == 4) {
-            return TRUE;
+            return FALSE;
         }
     }
 }
